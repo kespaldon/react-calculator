@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import Keys from './Keys'
+import History from './History'
 
 export default class Calculator extends Component {
   initialState = {
@@ -9,7 +10,10 @@ export default class Calculator extends Component {
     memory: null,
   }
 
-  state = this.initialState
+  state = {
+    ...this.initialState,
+    history: []
+  }
 
   componentDidMount() {
     window.addEventListener('keydown', this.handleKeyDown)
@@ -51,6 +55,8 @@ export default class Calculator extends Component {
       this.setOperation(key)
     } else if (key === 'Enter') {
       this.handleOperation()
+    } else if (key === 'Escape') {
+      this.setClear()
     }
   }
 
@@ -63,6 +69,7 @@ export default class Calculator extends Component {
 
   handleOperation = () => {
     let { memory, display, operation } = this.state
+    this.logHistory(memory, display, operation)
 
     if (memory === null || operation === null) {
       return
@@ -81,6 +88,7 @@ export default class Calculator extends Component {
       operation: null,
       memory: null
     })
+
 
     return
   }
@@ -145,13 +153,24 @@ export default class Calculator extends Component {
     }
   }
 
+  logHistory = (a, b, op) => {
+    const { history } = this.state
+
+    history.push(`${parseFloat(a)}${op}${parseFloat(b)}`)
+  }
+
   render() {
     return (
       <main>
-        <section className="calc-display">
-          {this.state.display}
+        <section>
+          <div className="calc-display">
+            {this.state.display}
+          </div>
+          <Keys handleKeyClick={this.handleKeyClick} />
         </section>
-        <Keys handleKeyClick={this.handleKeyClick} />
+        <section>
+          <History logs={this.state.history} />
+        </section>
       </main>
     )
   }
