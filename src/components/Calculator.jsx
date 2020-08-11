@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import Keys from './Keys'
+
 export default class Calculator extends Component {
   initialState = {
     isDecimal: false,
@@ -10,76 +11,99 @@ export default class Calculator extends Component {
 
   state = this.initialState
 
-  handleOperation() {
+  componentDidMount() {
+    window.addEventListener('keydown', this.handleKeyDown)
+  }
+
+  handleKeyDown = (e) => {
+    const { key } = e
+
+    console.log('key', key)
+
+    if (!isNaN(key)) {
+      this.setNumber(key)
+    } else if (key === 'Backspace') {
+      const { display, isDecimal } = this.state
+      const displaySplit = display.split('.')
+      let numerals = displaySplit[0]
+      let decimals = displaySplit[1]
+
+      if (isNaN(parseFloat(display))) {
+        this.setClear()
+        return
+      }
+
+      if (isDecimal === true || decimals.length > 0) {
+        if (decimals.length === 0) {
+          this.setState({ isDecimal: false })
+        }
+        decimals = decimals.substring(0, decimals.length - 1)
+      } else {
+        numerals = (numerals.length > 1)
+          ? numerals.substring(0, numerals.length - 1)
+          : 0
+      }
+
+      this.setState({ display: `${numerals}.${decimals}` })
+    } else if (key === '.') {
+      this.setState({ isDecimal: true })
+    } else if (['+', '-', '/', 'x'].indexOf(key) > -1) {
+      this.setOperation(key)
+    } else if (key === 'Enter') {
+      this.handleOperation()
+    }
+  }
+
+  operations = {
+    '+': (a, b) => a + b,
+    '-': (a, b) => a - b,
+    'x': (a, b) => a * b,
+    '/': (a, b) => (a / b)
+  }
+
+  handleOperation = () => {
     let { memory, display, operation } = this.state
 
-    const operations = {
-      '+': (a, b) => a + b,
-      '-': (a, b) => a - b,
-      'x': (a, b) => a * b,
-      '/': (a, b) => (a / b).toFixed(4)
+    if (memory === null || operation === null) {
+      return
     }
 
     memory = parseFloat(memory)
     display = parseFloat(display)
 
-    const result = operations[operation](memory, display)
+    const result = this.operations[operation](memory, display)
 
-    return result % 1 === 0 ? `${result}.` : result.toFixed(2)
+    const output = result % 1 === 0 ? `${result}.` : result.toFixed(2)
+
+    this.setState({
+      display: output,
+      isDecimal: false,
+      operation: null,
+      memory: null
+    })
+
+    return
   }
 
-  handleKeyClick = (e) => {
-    const { display, isDecimal } = this.state
-    const { value } = e.target
+  setDecimal = () => this.setState({ isDecimal: true })
 
+  setClear = () => this.setState(this.initialState)
+
+  setOperation = (operation) => {
+    const { display } = this.state
+    this.setState({
+      ...this.initialState,
+      operation: operation,
+      memory: parseFloat(display)
+    })
+    return
+  }
+
+  setNumber = (value) => {
+    const { display, isDecimal } = this.state
     const displaySplit = display.split('.')
     let numerals = displaySplit[0]
     let decimals = displaySplit[1]
-
-    // handle non-numeric inputs
-    if (value === '.') {
-      this.setState({ isDecimal: true })
-      return
-    }
-
-    if (value === 'AC') {
-      this.setState(this.initialState)
-      return
-    }
-
-    if (['+', '-', '/', 'x'].indexOf(value) > -1) {
-      const { display } = this.state
-      this.setState({
-        ...this.initialState,
-        operation: value,
-        memory: parseFloat(display)
-      })
-      return
-    }
-
-    if (value === '+/-') {
-      let { display } = this.state
-      display = parseFloat(display)
-
-      display = display * -1
-
-      this.setState({
-        display: display % 1 === 0 ? `${display}.` : display
-      })
-
-      return
-    }
-
-    // handle operations
-    if (value === '=') {
-      this.setState({
-        display: this.handleOperation(),
-        isDecimal: false,
-        operation: null,
-        memory: null
-      })
-      return
-    }
 
     if (isDecimal) {
       decimals = decimals + value
@@ -88,8 +112,37 @@ export default class Calculator extends Component {
     }
 
     this.setState({ display: `${numerals}.${decimals}` })
+    return
+  }
+
+  setPosNeg = () => {
+    let { display } = this.state
+    display = parseFloat(display) * -1
+
+    this.setState({
+      display: display % 1 === 0 ? `${display}.` : display
+    })
 
     return
+  }
+
+  handleKeyClick = (e) => {
+    const { value } = e.target
+
+    if (value === '.') {
+      this.setDecimal()
+    } else if (value === 'AC') {
+      this.setClear()
+    } else if (['+', '-', '/', 'x'].indexOf(value) > -1) {
+      this.setOperation(value)
+    } else if (value === '+/-') {
+      this.setPosNeg()
+    } else if (value === '=') {
+      this.handleOperation()
+      return
+    } else {
+      this.setNumber(value)
+    }
   }
 
   render() {
